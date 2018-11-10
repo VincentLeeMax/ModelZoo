@@ -17,5 +17,11 @@ from torch.autograd import Variable
 # g = vis.make_dot(y)
 # g.render("image", view=False)
 
-a = torch.IntTensor(3)
-print torch.__all__
+# a = torch.IntTensor(3)
+# print torch.__all__
+
+from visdom import Visdom
+import numpy as np
+viz = Visdom(env='my_wind')#设置环境窗口的名称是'my_wind',如果不设置名称就在main中
+tr_loss=list(range(100))
+viz.line(Y=np.array(tr_loss), opts=dict(showlegend=True))

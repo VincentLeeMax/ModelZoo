@@ -1,5 +1,8 @@
 ## General
 
+experiment/*
+pretrain/*
+
 # Compiled Object files
 *.slo
 *.lo

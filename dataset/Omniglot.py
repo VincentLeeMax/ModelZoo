@@ -1,6 +1,12 @@
 #coding=utf-8
+import os
+import torch
 import numpy as np
+import cv2
+from PIL import Image
+from torch.utils.data import DataLoader
 
+this_dir = os.path.dirname(os.path.abspath(__file__))
 
 """
 Omniglot dataset contains 1623 different handwritten characters from 50 different alphabets.
@@ -23,7 +29,7 @@ class OmniglotNShotDataset():
 		self.samples_per_class = samples_per_class
 		self.shuffle = shuffle
 		self.use_cache = True
-		x = np.load('../datasrc/Omniglot.npy')
+		x = np.load(os.path.join(this_dir, '..', '/datasrc/Omniglot.npy'))
 		if self.shuffle:
 			np.random.shuffle(x)
 		x = np.reshape(x, newshape=(x.shape[0], x.shape[1], 28, 28, 1))
@@ -114,11 +120,69 @@ class OmniglotNShotDataset():
 
 		return dataset
 
-if __name__ == '__main__':
-	omnoglot = OmniglotNShotDataset(10)
-	support_x, support_y, target_x, target_y = omnoglot.get_train_batch()
-	print support_x
-	print target_x
-	print support_y
-	print target_y
+class OmniglotClassifyDataset():
+	def __init__(self, batch_size, shuffle=True, transform=None, label_transform=None):
+		"""
+		Construct N-shot dataset
+		:param batch_size:  Experiment batch_size
+		:param classes_per_set: Integer indicating the number of classes per set
+		:param samples_per_class: Integer indicating samples per class
+		:param seed: seed for random function
+		:param shuffle: if shuffle the dataset
+		:param use_cache: if true,cache dataset to memory.It can speedup the train but require larger memory
+		"""
+		self.batch_size = batch_size
+		self.shuffle = shuffle
+		self.transform = transform
+		self.label_transform = label_transform
+		x = np.load(os.path.join(this_dir, '..', 'datasrc/Omniglot.npy'))
+		if self.shuffle:
+			np.random.shuffle(x)
+		x = np.reshape(x, newshape=(x.shape[0], x.shape[1], 28, 28))
+		print x.shape
 
+		x_train, x_val, x_test = OmniglotDataSet(x[:, :14], transform=transform, label_transform=label_transform), \
+								 OmniglotDataSet(x[:, 14:17], transform=transform, label_transform=label_transform), \
+								 OmniglotDataSet(x[:, 17:], transform=transform, label_transform=label_transform)
+		self.dataset = {'train': DataLoader(dataset=x_train, batch_size=self.batch_size, shuffle=self.shuffle),
+						'val': DataLoader(dataset=x_val, batch_size=self.batch_size, shuffle=self.shuffle),
+						'test': DataLoader(dataset=x_test, batch_size=self.batch_size, shuffle=self.shuffle)}
+
+	def get_dataset(self):
+		return self.dataset['train'], self.dataset['val'], self.dataset['test']
+
+class OmniglotDataSet(torch.utils.data.Dataset):
+	def __init__(self, x, transform=None, label_transform=None):
+		self.x = x
+		self.transform = transform
+		self.label_transform = label_transform
+
+	def __getitem__(self, index):
+		row = index / self.x.shape[0]
+		col = index % (self.x.shape[1] - 1)
+		img = self.x[row, col]
+		img_ = Image.fromarray(np.uint8(img))
+		if self.transform is not None:
+			img_ = self.transform(img_)
+		if self.label_transform is not None:
+			row = self.label_transform(row)
+
+		return img_, row
+
+	def __len__(self):
+		return self.x.shape[0] * self.x.shape[1]
+
+
+if __name__ == '__main__':
+	x = np.load(os.path.join(this_dir, '..', 'datasrc/Omniglot.npy'))
+	x = np.reshape(x, newshape=(x.shape[0], x.shape[1], 28, 28))
+	print x.shape
+
+	output_ = '/media/yishi/e8a4df38-fa5b-4ad9-bc59-99d2c868f77e/label/test'
+	for idx in range(x.shape[0]):
+		output_dir = os.path.join(output_, str(idx))
+		if not os.path.exists(output_dir):
+			os.makedirs(output_dir)
+		for idx2 in range(x.shape[1]):
+			output_file = os.path.join(output_dir, str(idx2) + '.jpg')
+			cv2.imwrite(output_file, x[idx][idx2])
