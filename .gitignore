@@ -3,6 +3,8 @@
 experiment/*
 pretrain/*
 
+/test
+
 # Compiled Object files
 *.slo
 *.lo
