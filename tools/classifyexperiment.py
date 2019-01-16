@@ -26,11 +26,11 @@ class classifyexperiment():
 		else:
 			self.viz = Visdom(env=visdomName)
 		if self.viz.check_connection():
-			self.viz.line(X=torch.FloatTensor([0]), Y=torch.FloatTensor([0]), win='train_loss_batch')
-			self.viz.line(X=torch.FloatTensor([0]), Y=torch.FloatTensor([0]), win='train_loss_epoch')
-			self.viz.line(X=torch.FloatTensor([0]), Y=torch.FloatTensor([0]), win='train_acc_batch')
-			self.viz.line(X=torch.FloatTensor([0]), Y=torch.FloatTensor([0]), win='train_acc_epoch')
-			self.viz.line(X=torch.FloatTensor([0]), Y=torch.FloatTensor([0]), win='val_acc_epoch')
+			self.viz.line(X=torch.FloatTensor([0]), Y=torch.FloatTensor([0]), win='train_loss_batch', opts={'title': 'train_loss_batch'})
+			self.viz.line(X=torch.FloatTensor([0]), Y=torch.FloatTensor([0]), win='train_loss_epoch', opts={'title': 'train_loss_epoch'})
+			self.viz.line(X=torch.FloatTensor([0]), Y=torch.FloatTensor([0]), win='train_acc_batch', opts={'title': 'train_acc_batch'})
+			self.viz.line(X=torch.FloatTensor([0]), Y=torch.FloatTensor([0]), win='train_acc_epoch', opts={'title': 'train_acc_epoch'})
+			self.viz.line(X=torch.FloatTensor([0]), Y=torch.FloatTensor([0]), win='val_acc_epoch', opts={'title': 'val_acc_epoch'})
 
 	def set_dataloader(self, train_dataloader, val_dataloader):
 		self.train_dataloader = train_dataloader
@@ -82,21 +82,23 @@ class classifyexperiment():
 			_, predicted = torch.max(outputs.data, 1)
 			total += labels.size(0)
 			correct += predicted.eq(labels.data).cpu().sum()
-			batch_acc = 1. * predicted.eq(labels.data).cpu().sum() / labels.size(0)
+			batch_acc = 100. * predicted.eq(labels.data).cpu().sum() / labels.size(0)
 			sys.stdout.write('\rTrain || Batch_id: %d/%d | Loss: %.3f | Acc: %.3f%% (%d/%d)'
 							 % (batch_idx, batch_len, train_loss / (batch_idx + 1), 100. * correct / total, correct, total))
 			if self.viz.check_connection():
-				self.viz.line(X=torch.FloatTensor([epoch + batch_idx / batch_len])
+				self.viz.line(X=torch.FloatTensor([epoch + 1. * batch_idx / batch_len])
 							  , Y=torch.FloatTensor([batch_acc]), win='train_acc_batch', update='append')
-				self.viz.line(X=torch.FloatTensor([epoch + batch_idx / batch_len])
+				self.viz.line(X=torch.FloatTensor([epoch + 1. * batch_idx / batch_len])
 							  , Y=torch.FloatTensor([loss.data[0]]), win='train_loss_batch', update='append')
-		logging.info('\nEpoch: %d || Train | lr: %f | Loss: %.3f | Acc: %.3f%% (%d/%d)'
+		sys.stdout.write('\n')
+		sys.stdout.flush()
+		logging.info('Epoch: %d || Train | lr: %f | Loss: %.3f | Acc: %.3f%% (%d/%d)'
 				 % (epoch, self.scheduler.get_lr()[0], train_loss / (batch_idx + 1), 100. * correct / total, correct, total))
 		if self.viz.check_connection():
 			self.viz.line(X=torch.FloatTensor([epoch])
 						  , Y=torch.FloatTensor([100. * correct / total]), win='train_acc_epoch', update='append')
 			self.viz.line(X=torch.FloatTensor([epoch])
-						  , Y=torch.FloatTensor([train_loss]), win='train_loss_epoch', update='append')
+						  , Y=torch.FloatTensor([train_loss / (batch_idx + 1)]), win='train_loss_epoch', update='append')
 
 	def val(self, epoch):
 		self.net.train(False)
@@ -121,9 +123,10 @@ class classifyexperiment():
 			correct += predicted.eq(labels.data).cpu().sum()
 			sys.stdout.write('\rTest || Batch_id: %d/%d | Loss: %.3f | Acc: %.3f%% (%d/%d)'
 							 % (batch_idx, batch_len, test_loss / (batch_idx + 1), 100. * correct / total, correct, total))
-
-		logging.info('\nEpoch: %d || Test | Loss: %.3f | Acc: %.3f%% (%d/%d)'
-			% (epoch, test_loss/(batch_idx+1), 1.* correct/total, correct, total))
+		sys.stdout.write('\n')
+		sys.stdout.flush()
+		logging.info('Epoch: %d || Test | Loss: %.3f | Acc: %.3f%% (%d/%d)'
+			% (epoch, test_loss/(batch_idx+1), 100. * correct / total, correct, total))
 		if self.viz.check_connection():
 			self.viz.line(X=torch.FloatTensor([epoch])
 						  , Y=torch.FloatTensor([100. * correct / total]), win='val_acc_epoch', update='append')
@@ -132,4 +135,4 @@ class classifyexperiment():
 		if not os.path.exists(self.home_dir):
 			os.makedirs(self.home_dir)
 		state = {'net': self.net.state_dict(), 'optimizer': self.optimizer.state_dict(), 'epoch': epoch}
-		torch.save(state, '{}.pkl'.format(epoch))
+		torch.save(state, os.path.join(self.home_dir, '{}.pkl'.format(epoch)))

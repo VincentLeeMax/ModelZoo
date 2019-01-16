@@ -2,6 +2,7 @@
 
 import torch.nn as nn
 import torch.utils.model_zoo as model_zoo
+import torchvision
 
 model_urls = {
 	'alexnet': 'https://download.pytorch.org/models/alexnet-owt-4df8aa71.pth',

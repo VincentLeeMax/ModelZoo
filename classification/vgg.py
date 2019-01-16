@@ -5,9 +5,10 @@ from torch.autograd import Variable
 from tools.modeldownloader import download_model
 import math
 import os
+import logging
 
+logging.basicConfig(level=logging.INFO, format='[%(asctime)s %(levelname)s] %(message)s')
 this_dir = os.path.dirname(os.path.abspath(__file__))
-
 model_urls = {
 	'VGG11': 'https://download.pytorch.org/models/vgg11-bbd30ac9.pth',
 	'VGG13': 'https://download.pytorch.org/models/vgg13-c768596a.pth',
@@ -27,7 +28,7 @@ cfgs = {
 }
 
 class VGG(nn.Module):
-	def __init__(self, vgg_name='VGG11', num_classes=1000, in_channel=3, dropout=0.0):
+	def __init__(self, vgg_name='VGG11', num_classes=1000, in_channel=3, dropout=0.0, init=True):
 		"""
 		create a vgg network structure...
 		:param vgg_name:
@@ -42,14 +43,16 @@ class VGG(nn.Module):
 										nn.ReLU(inplace=True),
 										nn.Dropout(dropout), nn.Linear(4096, 4096),
 										nn.ReLU(inplace=True),
-										nn.Dropout(dropout),
-										nn.Linear(4096, self.num_classes))
-		self._init_weights()
+										nn.Dropout(dropout))
+		self.fc_ = nn.Linear(4096, num_classes)
+		if init:
+			self._init_weights()
 
 	def forward(self, x):
 		x = self.features(x)
 		x = x.view(x.size(0), -1)
 		x = self.classifier(x)
+		x = self.fc_(x)
 
 		return x
 
@@ -86,9 +89,17 @@ class VGG(nn.Module):
 				m.bias.data.zero_()
 
 def vgg_11(num_classes, pretrain=False, in_channel=3, dropout=0.0):
-	model = VGG(vgg_name='VGG11', num_classes=num_classes, in_channel=in_channel, dropout=dropout)
+	model = VGG(vgg_name='VGG11', num_classes=num_classes, in_channel=in_channel, dropout=dropout, init=not pretrain)
 	if pretrain:
-		model.load_state_dict(download_model(model_urls['VGG11']))
+		pretrained_dict = download_model(model_urls['VGG11'])
+		model_dict = model.state_dict()
+		pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}
+		# 更新现有的model_dictcc
+		model_dict.update(pretrained_dict)
+		# 加载我们真正需要的state_dict
+		model.load_state_dict(model_dict)
+		logging.info("Loaded pretrain model..")
+
 
 	return model
 

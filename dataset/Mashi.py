@@ -28,8 +28,12 @@ class MashiClassifyDataset():
 		x_test = torchvision.datasets.ImageFolder('/2T/workspace/data/MS_dataset/special_test'
 												 , transform=transform)
 		self.dataset = {'train': DataLoader(dataset=x_train, batch_size=self.batch_size, shuffle=self.shuffle),
-						'val': DataLoader(dataset=x_val, batch_size=self.batch_size, shuffle=self.shuffle),
-						'test': DataLoader(dataset=x_test, batch_size=self.batch_size, shuffle=self.shuffle)}
+						'val': DataLoader(dataset=x_val, batch_size=1, shuffle=self.shuffle),
+						'test': DataLoader(dataset=x_test, batch_size=1, shuffle=self.shuffle)}
+		self.classes = x_train.classes
 
 	def get_dataset(self):
 		return self.dataset['train'], self.dataset['val'], self.dataset['test']
+
+	def get_class(self):
+		return self.classes
