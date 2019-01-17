@@ -9,6 +9,7 @@ import logging
 
 logging.basicConfig(level=logging.INFO, format='[%(asctime)s %(levelname)s] %(message)s')
 this_dir = os.path.dirname(os.path.abspath(__file__))
+
 model_urls = {
 	'VGG11': 'https://download.pytorch.org/models/vgg11-bbd30ac9.pth',
 	'VGG13': 'https://download.pytorch.org/models/vgg13-c768596a.pth',
