@@ -40,12 +40,13 @@ class VGG(nn.Module):
 		self.in_channel = in_channel
 		self.dropout = dropout
 		self.features = self._make_network(vgg_name)
-		self.classifier = nn.Sequential(nn.Linear(512 * 7 * 7, 4096),
+		self.classifier = nn.Sequential(nn.Linear(512 * 7 * 7, 2048),
+										nn.Dropout(dropout),
 										nn.ReLU(inplace=True),
-										nn.Dropout(dropout), nn.Linear(4096, 4096),
-										nn.ReLU(inplace=True),
-										nn.Dropout(dropout))
-		self.fc_ = nn.Linear(4096, num_classes)
+										nn.Linear(2048, 1024),
+										nn.Dropout(dropout),
+										nn.ReLU(inplace=True))
+		self.fc_ = nn.Linear(1024, num_classes)
 		if init:
 			self._init_weights()
 
@@ -95,7 +96,7 @@ def vgg_11(num_classes, pretrain=False, in_channel=3, dropout=0.0):
 		pretrained_dict = download_model(model_urls['VGG11'])
 		model_dict = model.state_dict()
 		pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}
-		# 更新现有的model_dictcc
+		# 更新现有的model_dict
 		model_dict.update(pretrained_dict)
 		# 加载我们真正需要的state_dict
 		model.load_state_dict(model_dict)

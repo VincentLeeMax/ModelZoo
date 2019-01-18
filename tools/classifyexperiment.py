@@ -77,7 +77,7 @@ class classifyexperiment():
 			loss.backward()
 			# update
 			self.optimizer.step()
-			train_loss += loss.data[0]
+			train_loss += loss.data
 			# statist
 			_, predicted = torch.max(outputs.data, 1)
 			total += labels.size(0)
@@ -89,7 +89,7 @@ class classifyexperiment():
 				self.viz.line(X=torch.FloatTensor([epoch + 1. * batch_idx / batch_len])
 							  , Y=torch.FloatTensor([batch_acc]), win='train_acc_batch', update='append')
 				self.viz.line(X=torch.FloatTensor([epoch + 1. * batch_idx / batch_len])
-							  , Y=torch.FloatTensor([loss.data[0]]), win='train_loss_batch', update='append')
+							  , Y=torch.FloatTensor([loss.data]), win='train_loss_batch', update='append')
 		sys.stdout.write('\n')
 		sys.stdout.flush()
 		logging.info('Epoch: %d || Train | lr: %f | Loss: %.3f | Acc: %.3f%% (%d/%d)'
@@ -116,7 +116,7 @@ class classifyexperiment():
 			inputs, labels = Variable(inputs), Variable(labels)
 			outputs = self.net(inputs)
 			loss = self.criterion(outputs, labels)
-			test_loss += loss.data[0]
+			test_loss += loss.data
 			# statist
 			_, predicted = torch.max(outputs.data, 1)
 			total += labels.size(0)

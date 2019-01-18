@@ -71,6 +71,7 @@ data/*
 !data/__init__.py
 !data/converte_trainsets.py
 !data/data_parse_interface.py
+result/
 
 *.caffemodel
 *.caffemodel.h5
