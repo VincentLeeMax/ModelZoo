@@ -32,9 +32,10 @@ class classifyexperiment():
 			self.viz.line(X=torch.FloatTensor([0]), Y=torch.FloatTensor([0]), win='train_acc_epoch', opts={'title': 'train_acc_epoch'})
 			self.viz.line(X=torch.FloatTensor([0]), Y=torch.FloatTensor([0]), win='val_acc_epoch', opts={'title': 'val_acc_epoch'})
 
-	def set_dataloader(self, train_dataloader, val_dataloader):
+	def set_dataloader(self, classes, train_dataloader=None, val_dataloader=None):
 		self.train_dataloader = train_dataloader
 		self.val_dataloader = val_dataloader
+		self.classes = classes
 
 	def get_net(self):
 		return self.net
@@ -46,9 +47,10 @@ class classifyexperiment():
 			self.train(epoch)
 			# 清除部分无用变量
 			torch.cuda.empty_cache()
-			self.val(epoch)
-			# 清除部分无用变量
-			torch.cuda.empty_cache()
+			if self.val_dataloader is not None:
+				self.val(epoch)
+				# 清除部分无用变量
+				torch.cuda.empty_cache()
 			if self.snapshot != 0 and epoch % self.snapshot == 0:
 				self.save(epoch)
 
@@ -134,5 +136,6 @@ class classifyexperiment():
 	def save(self, epoch):
 		if not os.path.exists(self.home_dir):
 			os.makedirs(self.home_dir)
-		state = {'net': self.net.state_dict(), 'optimizer': self.optimizer.state_dict(), 'epoch': epoch}
+		state = {'net': self.net.state_dict(), 'optimizer': self.optimizer.state_dict(), 'epoch': epoch
+			, 'classes': self.classes}
 		torch.save(state, os.path.join(self.home_dir, '{}.pkl'.format(epoch)))

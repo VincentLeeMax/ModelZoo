@@ -8,7 +8,7 @@ import logging
 logging.basicConfig(level=logging.INFO, format='[%(asctime)s %(levelname)s] %(message)s')
 this_dir = os.path.dirname(os.path.abspath(__file__))
 
-__all__ = ['resnext50', 'resnext101', 'resnext152']
+__all__ = ['resnext50']
 
 
 class Bottleneck(nn.Module):
@@ -54,10 +54,10 @@ class ResNeXt(nn.Module):
         self.inplanes = 64
         super(ResNeXt, self).__init__()
         self.dropout = dropout
-        self.conv0 = nn.Conv2d(in_channel, 64, kernel_size=7, stride=2, padding=3, bias=False)
-        self.bn0 = nn.BatchNorm2d(64)
+        self.conv1 = nn.Conv2d(in_channel, 64, kernel_size=7, stride=2, padding=3, bias=False)
+        self.bn1 = nn.BatchNorm2d(64)
         self.relu = nn.ReLU(inplace=True)
-        self.pool0 = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
+        self.maxpool1 = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
         self.layer1 = self._make_layer(block, 64, layers[0], num_group)
         self.layer2 = self._make_layer(block, 128, layers[1], num_group, stride=2)
         self.layer3 = self._make_layer(block, 256, layers[2], num_group, stride=2)
@@ -93,10 +93,10 @@ class ResNeXt(nn.Module):
         return nn.Sequential(*layers)
 
     def forward(self, x):
-        x = self.conv0(x)
-        x = self.bn0(x)
+        x = self.conv1(x)
+        x = self.bn1(x)
         x = self.relu(x)
-        x = self.pool0(x)
+        x = self.maxpool1(x)
 
         x = self.layer1(x)
         x = self.layer2(x)
@@ -116,24 +116,15 @@ def resnext50(num_classes, pretrain=None, in_channel=3, dropout=0.0):
     if pretrain:
         pretrained_dict = torch.load(pretrain)['state_dict']
         model_dict = model.state_dict()
-        pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}
-
-        print pretrained_dict.keys()
+        pretrained_dict = {k.replace('module.', ''): v for k, v in pretrained_dict.items() if k.replace('module.', '') in model_dict}
+        pretrained_not_match_dict = {k.replace('module.', ''): v for k, v in pretrained_dict.items() if
+                           k.replace('module.', '') not in model_dict}
+        logging.info("Layer not match.. {}".format(pretrained_not_match_dict.keys()))
         # 更新现有的model_dict
         model_dict.update(pretrained_dict)
         # 加载我们真正需要的state_dict
         model.load_state_dict(model_dict)
         logging.info("Loaded pretrain model..")
-
-    return model
-
-def resnext101(**kwargs):
-    model = ResNeXt(Bottleneck, [3, 4, 23, 3], **kwargs)
-
-    return model
-
-def resnext152(**kwargs):
-    model = ResNeXt(Bottleneck, [3, 8, 36, 3], **kwargs)
 
     return model
 
